@@ -2,22 +2,161 @@
 <html lang="en">
 <head>
   <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
   <meta name="theme-color" content="#0b0b10" />
+  <link rel="manifest" href="./manifest.webmanifest" />
+  <link rel="apple-touch-icon" href="./icon-180.png" />
   <title>Rifle Stock Check</title>
   <link rel="stylesheet" href="./styles.css" />
 </head>
 <body>
-  <h1>Rifle Stock Check</h1>
+  <header>
+    <h1>Rifle Stock Check</h1>
+    <div class="sub" id="datasetInfo">Loading…</div>
+  </header>
 
-  <button id="scanBtn">Scan Barcode</button>
+  <div class="container">
+    <div id="noData" class="card" hidden>
+      <div style="display:flex; gap:12px; align-items:center;">
+        <img src="./icon-192.png" alt="" width="52" height="52" style="border-radius:14px; border:1px solid rgba(255,255,255,.10);" />
+        <div>
+          <div style="font-weight:750;">Load your rifle stock CSV</div>
+          <div class="small">Default filter is <b>Condition = New</b>. Filter by <b>Make</b> and/or <b>Model</b> and start scanning.</div>
+        </div>
+      </div>
+      <div class="actions">
+        <button class="primary" id="importBtn">Import CSV</button>
+        <button class="ghost" onclick="document.querySelector('#helpModal').showModal()">How to install</button>
+      </div>
+      <div class="footerHint">
+        Tip: After opening in Safari, use <b>Share → Add to Home Screen</b> so it feels like a real app.
+      </div>
+    </div>
+
+    <div id="hasData" hidden>
+      <div class="card">
+        <div class="row3">
+          <div>
+            <label for="conditionSel">Condition</label>
+            <select id="conditionSel">
+              <option value="New">New (default)</option>
+              <option value="Used">Used</option>
+              <option value="All">All</option>
+            </select>
+          </div>
+          <div>
+            <label for="makeSel">Make</label>
+            <select id="makeSel"></select>
+          </div>
+          <div>
+            <label for="modelSel">Model (exact match)</label>
+            <select id="modelSel"></select>
+          </div>
+        </div>
+
+        <div class="spacer"></div>
+        <div class="small" id="activeFilters">—</div>
+
+        <div class="counters">
+          <div class="counter"><div class="k">Expected</div><div class="v" id="expectedVal">0</div></div>
+          <div class="counter"><div class="k">Scanned</div><div class="v" id="scannedVal">0</div></div>
+          <div class="counter"><div class="k">Missing</div><div class="v" id="missingVal">0</div></div>
+        </div>
+
+        <div class="actions" style="margin-top:12px;">
+          <button class="primary" id="scanBtn">Scan Barcode</button>
+          <button onclick="document.querySelector('#fileInput').click()">Replace CSV</button>
+        </div>
+
+        <div class="actions3">
+          <button id="exportFilteredBtn">Export Filtered (with Missing)</button>
+          <button id="exportAllBtn">Export All (Scanned column)</button>
+          <button class="danger" id="resetBtn">Reset Check</button>
+        </div>
+
+        <div class="actions" style="margin-top:10px;">
+          <button class="ghost" id="clearCsvBtn">Remove saved CSV</button>
+          <button class="ghost" onclick="document.querySelector('#helpModal').showModal()">Install help</button>
+        </div>
+
+        <input id="searchBox" placeholder="Search stock number / make / model…" style="margin-top:10px;" />
+
+        <div class="tabs">
+          <button class="tab" data-tab="missing">Missing</button>
+          <button class="tab" data-tab="scanned">Scanned</button>
+          <button class="tab" data-tab="all">All Filtered</button>
+        </div>
+
+        <div class="list" id="list"></div>
+
+        <div class="footerHint">
+          Scans are saved on your phone. If a barcode won’t scan, use manual entry in the scanner window.
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <input id="fileInput" type="file" accept=".csv,text/csv" hidden />
+  <div id="toast"></div>
 
   <dialog id="scanModal">
-    <div id="scanner" style="width:100%;height:260px;background:black"></div>
-    <button id="scanClose">Close</button>
+    <div class="modal">
+      <div class="modalHeader">
+        <h2>Scan barcode (Code-128)</h2>
+        <button class="ghost" id="scanClose">Close</button>
+      </div>
+      <div class="videoWrap">
+        <div id="scanner"></div>
+        <div class="scanOverlay"></div>
+      </div>
+      <div class="small" style="margin-top:10px;" id="scanStatus">—</div>
+      <div class="row3" style="margin-top:10px; grid-template-columns: 1fr 1fr 1fr;">
+        <div style="grid-column: span 2;">
+          <label>Manual entry (fallback)</label>
+          <input id="manualInput" placeholder="Type stock number…" autocomplete="off" />
+        </div>
+        <div style="display:flex; align-items:end;">
+          <button id="manualAddBtn">Add</button>
+        </div>
+      </div>
+      <div class="footerHint">
+        Tip: Hold the label 20–30cm away and tilt slightly to avoid glare.
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="mappingModal">
+    <div class="modal">
+      <div class="modalHeader">
+        <h2>Map CSV columns</h2>
+      </div>
+      <div class="small">Pick which columns are Stock Number, Condition, Make and Model. (Calibre is optional.)</div>
+      <div id="mappingBody"></div>
+      <div class="actions" style="margin-top:12px;">
+        <button class="primary" id="mappingSave">Save mapping</button>
+        <button class="ghost" id="mappingCancel">Cancel</button>
+      </div>
+    </div>
+  </dialog>
+
+  <dialog id="helpModal">
+    <div class="modal">
+      <div class="modalHeader">
+        <h2>Install on iPhone (Home Screen)</h2>
+        <button class="ghost" onclick="this.closest('dialog').close()">Close</button>
+      </div>
+      <div class="footerHint">
+        <ol>
+          <li>Open this app in <b>Safari</b>.</li>
+          <li>Tap <b>Share</b> (square with arrow).</li>
+          <li>Tap <b>Add to Home Screen</b>.</li>
+          <li>Open from the new icon — it will remember your CSV and scans.</li>
+        </ol>
+      </div>
+    </div>
   </dialog>
 
   <script src="https://unpkg.com/@ericblade/quagga2/dist/quagga.js"></script>
-  <script src="./app.js"></script>
+  <script type="module" src="./app.js"></script>
 </body>
 </html>
