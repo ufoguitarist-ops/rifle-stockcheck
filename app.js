@@ -177,18 +177,38 @@ function startScanner(onCode){
   const target=document.querySelector('#scanner'); target.innerHTML='';
   if(!window.Quagga){ $('#scanStatus').textContent='Scanner failed to load. Refresh and try again.'; return; }
 
-  const config={
-    numOfWorkers:0,
-    locate:true,
-    inputStream:{
-      name:'Live',
-      type:'LiveStream',
-      target,
-      constraints:{ facingMode:'environment', width:{min:640}, height:{min:480} },
-      area:{ top:'35%', right:'10%', left:'10%', bottom:'35%' }
+  const config = {
+  numOfWorkers: 0,        // required for iOS
+  locate: false,          // CRITICAL FIX for your phone
+
+  inputStream: {
+    name: "Live",
+    type: "LiveStream",
+    target,
+    constraints: {
+      facingMode: "environment",
+      width: { min: 640 },
+      height: { min: 480 }
     },
-    decoder:{ readers:['code_128_reader'], multiple:false }
-  };
+    singleChannel: false, // forces processed frames on iOS
+    area: {
+      top: "35%",
+      right: "10%",
+      left: "10%",
+      bottom: "35%"
+    }
+  },
+
+  locator: {
+    patchSize: "small",   // better for dense Code-128
+    halfSample: false
+  },
+
+  decoder: {
+    readers: ["code_128_reader"],
+    multiple: false
+  }
+};
 
   try{
     window.Quagga.init(config,(err)=>{
